@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TwitchSync – Viele Streams. Ein Moment.</title>
+    <meta name="description" content="Twitch-Multiview für macOS: mehrere Streams gleichzeitig, automatisch synchronisiert – mit Facecam-Modus, Chat, gefolgten Kanälen und Multistream-Erkennung." />
+    <meta property="og:title" content="TwitchSync – Viele Streams. Ein Moment." />
+    <meta property="og:description" content="Twitch-Multiview für macOS mit automatischer Latenz-Angleichung und Facecam-Modus." />
+    <meta property="og:image" content="assets/icon-256.png" />
+    <link rel="icon" href="assets/favicon.png" />
+    <style>
+      @font-face { font-family: 'Bricolage Grotesque'; font-weight: 200 800; font-stretch: 75% 100%; font-display: swap; src: url(assets/fonts/bricolage-grotesque-latin-standard-normal.woff2) format('woff2-variations'); }
+      @font-face { font-family: 'Bricolage Grotesque'; font-weight: 200 800; font-stretch: 75% 100%; font-display: swap; src: url(assets/fonts/bricolage-grotesque-latin-ext-standard-normal.woff2) format('woff2-variations'); unicode-range: U+0100-02BA, U+1E00-1EFF, U+2020, U+20A0-20C0, U+A720-A7FF; }
+      @font-face { font-family: 'Instrument Sans'; font-weight: 400 700; font-stretch: 75% 100%; font-display: swap; src: url(assets/fonts/instrument-sans-latin-standard-normal.woff2) format('woff2-variations'); }
+      @font-face { font-family: 'Instrument Sans'; font-weight: 400 700; font-stretch: 75% 100%; font-display: swap; src: url(assets/fonts/instrument-sans-latin-ext-standard-normal.woff2) format('woff2-variations'); unicode-range: U+0100-02BA, U+1E00-1EFF, U+2020, U+20A0-20C0, U+A720-A7FF; }
+      @font-face { font-family: 'Martian Mono'; font-weight: 100 800; font-stretch: 75% 112.5%; font-display: swap; src: url(assets/fonts/martian-mono-latin-standard-normal.woff2) format('woff2-variations'); }
+
+      :root {
+        --bg-0: #07080b; --bg-1: #0c0e13; --bg-2: #12151c; --bg-3: #191d27; --bg-4: #222733;
+        --line: rgba(255,255,255,.06); --line-2: rgba(255,255,255,.1); --line-3: rgba(255,255,255,.17);
+        --text-0: #eef0f4; --text-1: #a8aebb; --text-2: #6e7484; --text-3: #484d5a;
+        --signal: #c8ff3c; --signal-ink: #0b0f03; --amber: #ffb547; --live: #ff4b55; --violet: #a796ff; --cyan: #59dcff; --pink: #ff7ad9;
+        --display: 'Bricolage Grotesque', 'Instrument Sans', sans-serif;
+        --ui: 'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        --mono: 'Martian Mono', ui-monospace, Menlo, monospace;
+        --ease: cubic-bezier(.22,1,.36,1);
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body { margin: 0; background: var(--bg-0); color: var(--text-0); font: 16px/1.6 var(--ui); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+      body::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+        background: radial-gradient(rgba(255,255,255,.04) 1px, transparent 1.2px) 0 0/24px 24px; mask-image: linear-gradient(#000, transparent 70%); }
+      a { color: inherit; }
+      ::selection { background: var(--signal); color: var(--signal-ink); }
+      .wrap { position: relative; z-index: 1; width: min(1140px, 100% - 40px); margin: 0 auto; }
+      .eyebrow { font: 500 11px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--text-2); }
+      .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+      /* nav */
+      nav { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(16px); background: rgba(7,8,11,.72); border-bottom: 1px solid var(--line); }
+      nav .wrap { display: flex; align-items: center; gap: 28px; height: 62px; }
+      .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 700 18px var(--display); letter-spacing: -.02em; }
+      .brand b { color: var(--signal); }
+      .brand img { width: 30px; height: 30px; }
+      nav .links { display: flex; gap: 22px; margin-left: auto; font-size: 14px; color: var(--text-1); }
+      nav .links a { text-decoration: none; }
+      nav .links a:hover { color: var(--text-0); }
+      .btn { display: inline-flex; align-items: center; gap: 9px; height: 44px; padding: 0 20px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--bg-3); color: var(--text-0); font: 600 15px var(--ui); text-decoration: none; transition: transform .15s var(--ease), filter .15s, background .15s; white-space: nowrap; }
+      .btn:hover { transform: translateY(-1px); background: var(--bg-4); }
+      .btn.primary { background: var(--signal); color: var(--signal-ink); border-color: transparent; }
+      .btn.primary:hover { filter: brightness(1.06); background: var(--signal); }
+      .btn.small { height: 36px; padding: 0 14px; font-size: 13.5px; border-radius: 10px; }
+      .btn svg { width: 17px; height: 17px; }
+
+      /* hero */
+      header.hero { padding: 96px 0 40px; }
+      .kicker { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+      .kicker i { width: 32px; height: 1px; background: var(--signal); }
+      h1 { margin: 0; font: 800 clamp(52px, 9vw, 116px)/.9 var(--display); letter-spacing: -.035em; font-stretch: 88%; }
+      h1 span { display: block; }
+      h1 .accent { color: var(--signal); }
+      .lead { max-width: 640px; margin: 28px 0 34px; font-size: 19px; color: var(--text-1); }
+      .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+      .cta .note { font-size: 13px; color: var(--text-2); }
+
+      /* app mock */
+      .mock { margin-top: 64px; border-radius: 18px; border: 1px solid var(--line-2); background: var(--bg-1); box-shadow: 0 50px 120px -40px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.02); overflow: hidden; }
+      .mock-bar { display: flex; align-items: center; gap: 14px; height: 46px; padding: 0 16px; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, rgba(255,255,255,.03), transparent), var(--bg-1); }
+      .lights { display: flex; gap: 7px; } .lights i { width: 11px; height: 11px; border-radius: 50%; background: #3a3f4b; }
+      .lights i:nth-child(1) { background: #ff5f57; } .lights i:nth-child(2) { background: #febc2e; } .lights i:nth-child(3) { background: #28c840; }
+      .mock-search { flex: 1; max-width: 360px; height: 28px; margin: 0 auto; border-radius: 8px; border: 1px solid var(--line-2); background: var(--bg-0); font-size: 12px; color: var(--text-3); display: flex; align-items: center; padding: 0 10px; }
+      .mock-sync { display: flex; align-items: center; gap: 10px; height: 30px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg-0); font: 500 11px var(--mono); color: var(--signal); }
+      .mini-rail { position: relative; width: 120px; height: 18px; }
+      .mini-rail::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: repeating-linear-gradient(90deg, var(--line-3) 0 1px, transparent 1px 10px); }
+      .mini-rail i { position: absolute; top: 3px; width: 6px; height: 12px; margin-left: -3px; border-radius: 2px; background: var(--c); animation: settle 5s var(--ease) infinite; }
+      .mini-rail b { position: absolute; left: 62%; top: 0; bottom: 0; width: 2px; background: var(--signal); box-shadow: 0 0 8px var(--signal); }
+      .mock-body { display: grid; grid-template-columns: 1fr 230px; gap: 8px; padding: 10px; min-height: 420px; }
+      .mock-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .tile { position: relative; border-radius: 8px; overflow: hidden; background: var(--bg-2); display: flex; flex-direction: column; }
+      .tile .bar { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; font: 600 10px var(--mono); letter-spacing: .06em; text-transform: uppercase; border-bottom: 1px solid var(--line); }
+      .tile .bar .sw { width: 4px; height: 11px; border-radius: 2px; background: var(--c); }
+      .tile .bar .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--live); box-shadow: 0 0 6px var(--live); }
+      .tile .bar .lat { margin-left: auto; display: flex; align-items: center; gap: 5px; padding: 2px 7px; border-radius: 5px; background: var(--bg-3); font-weight: 500; letter-spacing: 0; text-transform: none; }
+      .tile .bar .lat::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--signal); box-shadow: 0 0 5px var(--signal); }
+      .tile .pic { flex: 1; aspect-ratio: 16/9; position: relative; background: var(--scene); }
+      .tile .pic::after { content: ''; position: absolute; right: 7%; top: 9%; width: 24%; aspect-ratio: 4/3; border-radius: 5px; background: radial-gradient(circle at 50% 42%, #e9c6a8 0 13%, transparent 14%), radial-gradient(ellipse at 50% 100%, #2c3244 0 38%, transparent 39%), linear-gradient(160deg, #2a2f3d, #171a22); box-shadow: 0 0 0 2px rgba(0,0,0,.4); }
+      .tile.audio { box-shadow: 0 0 0 1.5px var(--signal); }
+      .tile.audio .bar .name { background: var(--signal); color: var(--signal-ink); padding: 3px 6px; border-radius: 4px; }
+      .mock-chat { border-radius: 8px; background: var(--bg-2); padding: 12px; display: flex; flex-direction: column; gap: 9px; font-size: 11.5px; overflow: hidden; }
+      .mock-chat .tabs { display: flex; gap: 6px; margin-bottom: 4px; } .mock-chat .tabs span { padding: 4px 8px; border-radius: 6px; background: var(--bg-3); font-size: 10.5px; color: var(--text-1); } .mock-chat .tabs span:first-child { color: var(--text-0); box-shadow: inset 0 -2px 0 var(--signal); }
+      .mock-chat p { margin: 0; color: var(--text-1); } .mock-chat p b { color: var(--c); }
+      @keyframes settle { 0%, 15% { left: var(--from); } 45%, 90% { left: 62%; } 100% { left: var(--from); } }
+
+      /* sections */
+      section { padding: 110px 0 0; }
+      .section-head { max-width: 720px; margin-bottom: 44px; }
+      h2 { margin: 14px 0 14px; font: 800 clamp(34px, 5vw, 56px)/1 var(--display); letter-spacing: -.03em; font-stretch: 90%; }
+      h2 em { font-style: normal; color: var(--signal); }
+      .section-head p { margin: 0; font-size: 17.5px; color: var(--text-1); }
+      .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+      .card { position: relative; padding: 26px 24px 24px; border-radius: 16px; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(255,255,255,.025), transparent 60%), var(--bg-1); }
+      .card .ico { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 11px; background: var(--bg-3); color: var(--signal); margin-bottom: 18px; }
+      .card .ico svg { width: 20px; height: 20px; }
+      .card h3 { margin: 0 0 8px; font: 700 19px/1.2 var(--display); letter-spacing: -.015em; }
+      .card p { margin: 0; color: var(--text-1); font-size: 14.5px; }
+      .card.wide { grid-column: span 2; }
+
+      /* sync */
+      .split { display: grid; grid-template-columns: 1.05fr 1fr; gap: 40px; align-items: center; }
+      .scope { padding: 26px; border-radius: 18px; border: 1px solid var(--line-2); background: var(--bg-1); }
+      .scope-row { position: relative; height: 40px; display: flex; align-items: center; }
+      .scope-row + .scope-row { margin-top: 8px; }
+      .scope-row::before { content: ''; position: absolute; left: 92px; right: 0; height: 1px; background: repeating-linear-gradient(90deg, var(--line-3) 0 1px, transparent 1px 16px); }
+      .scope-row .label { width: 92px; font: 500 10.5px var(--mono); color: var(--text-2); letter-spacing: .08em; }
+      .scope-row .blip { position: absolute; height: 14px; width: 54px; margin-left: -27px; border-radius: 4px; background: var(--c); animation: settle2 7s var(--ease) infinite; }
+      .scope-line { position: absolute; top: 18px; bottom: 50px; left: calc(92px + (100% - 92px - 52px) * .66); width: 2px; background: var(--signal); box-shadow: 0 0 16px var(--signal); }
+      .scope { position: relative; }
+      .scope-legend { display: flex; justify-content: space-between; margin-top: 18px; font: 500 11px var(--mono); color: var(--text-2); }
+      @keyframes settle2 { 0%, 10% { left: var(--from); } 50%, 88% { left: calc(92px + (100% - 92px) * .66); } 100% { left: var(--from); } }
+      .steps { counter-reset: s; display: flex; flex-direction: column; gap: 18px; }
+      .step { display: grid; grid-template-columns: 44px 1fr; gap: 16px; }
+      .step::before { counter-increment: s; content: counter(s, decimal-leading-zero); font: 600 13px var(--mono); color: var(--signal); padding-top: 3px; }
+      .step h4 { margin: 0 0 4px; font: 700 17px var(--display); }
+      .step p { margin: 0; color: var(--text-1); font-size: 14.5px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 30px; font-size: 14px; }
+      th, td { text-align: left; padding: 13px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+      th { font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--text-2); }
+      td:first-child { font-family: var(--mono); font-size: 12.5px; color: var(--text-0); white-space: nowrap; }
+      td { color: var(--text-1); }
+      .ok { color: var(--signal); } .no { color: var(--amber); }
+
+      /* facecam */
+      .facecam-mock { display: grid; grid-template-columns: 1fr 34%; gap: 8px; padding: 10px; border-radius: 18px; border: 1px solid var(--line-2); background: var(--bg-1); }
+      .facecam-mock .main .pic::after { display: none; }
+      .cams { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-content: center; }
+      .cam { border-radius: 8px; overflow: hidden; background: var(--bg-2); }
+      .cam .bar { height: 22px; font-size: 9px; }
+      .cam .face { aspect-ratio: 4/3; background: radial-gradient(circle at 50% 40%, var(--skin) 0 17%, transparent 18%), radial-gradient(ellipse at 50% 105%, var(--shirt) 0 42%, transparent 43%), linear-gradient(160deg, var(--room), #11141b); position: relative; }
+      .cam .face::after { content: ''; position: absolute; left: 34%; top: 20%; width: 32%; height: 40%; border: 1.5px dashed rgba(200,255,60,.6); border-radius: 4px; }
+
+      /* install */
+      .install { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+      pre { margin: 12px 0 0; padding: 14px 16px; border-radius: 12px; background: var(--bg-0); border: 1px solid var(--line); font: 12.5px/1.7 var(--mono); color: var(--text-0); overflow-x: auto; }
+      .keys { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 40px; }
+      .keys div { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+      kbd { font: 500 11px var(--mono); padding: 3px 7px; border-radius: 6px; border: 1px solid var(--line-2); border-bottom-width: 2px; background: var(--bg-2); color: var(--text-1); }
+      details { border-bottom: 1px solid var(--line); padding: 18px 0; }
+      summary { cursor: pointer; font: 700 18px var(--display); list-style: none; display: flex; justify-content: space-between; }
+      summary::after { content: '+'; color: var(--signal); font-family: var(--mono); }
+      details[open] summary::after { content: '–'; }
+      details p { margin: 10px 0 0; color: var(--text-1); max-width: 820px; }
+
+      footer { margin-top: 120px; padding: 40px 0 60px; border-top: 1px solid var(--line); color: var(--text-2); font-size: 13.5px; }
+      footer .wrap { display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; }
+      footer a { color: var(--text-1); }
+
+      .reveal { opacity: 0; transform: translateY(14px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+      .reveal.in { opacity: 1; transform: none; }
+
+      @media (max-width: 900px) {
+        .features, .install { grid-template-columns: 1fr; } .card.wide { grid-column: auto; }
+        .split { grid-template-columns: 1fr; } .mock-body { grid-template-columns: 1fr; } .mock-chat { display: none; }
+        nav .links { display: none; } .keys { grid-template-columns: 1fr; } .facecam-mock { grid-template-columns: 1fr; }
+      }
+      @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } .reveal { opacity: 1; transform: none; } }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <div class="wrap">
+        <a class="brand" href="#"><img src="assets/icon-256.png" alt="" />Twitch<b>Sync</b></a>
+        <div class="links">
+          <a href="#features">Funktionen</a>
+          <a href="#sync">Wie Sync funktioniert</a>
+          <a href="#facecam">Facecam-Modus</a>
+          <a href="#install">Installation</a>
+          <a href="#faq">FAQ</a>
+        </div>
+        <a class="btn small primary" href="https://github.com/olivrr-vfx/twitchsync/releases/latest">Download</a>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <div class="wrap">
+        <div class="kicker"><i></i><span class="eyebrow">Twitch Multiview für macOS · Auto-Sync</span></div>
+        <h1><span>Viele Streams.</span><span class="accent">Ein Moment.</span></h1>
+        <p class="lead">TwitchSync zeigt beliebig viele Twitch-Streams nebeneinander und gleicht ihre Verzögerung automatisch an. Wenn fünf Streamer zusammen spielen, siehst du jeden Kill und jede Reaktion in allen Kacheln im selben Augenblick.</p>
+        <div class="cta">
+          <a class="btn primary" href="https://github.com/olivrr-vfx/twitchsync/releases/latest">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14"/></svg>
+            Für macOS laden
+          </a>
+          <a class="btn" href="https://github.com/olivrr-vfx/twitchsync">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5a9.5 9.5 0 0 0-3 18.5c.5.1.7-.2.7-.5v-1.7c-2.7.6-3.3-1.2-3.3-1.2-.4-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.3-1.1.6-1.3-2.1-.2-4.4-1.1-4.4-4.8 0-1 .4-1.9 1-2.6-.1-.2-.4-1.2.1-2.6 0 0 .8-.3 2.6 1a9 9 0 0 1 4.8 0c1.8-1.3 2.6-1 2.6-1 .5 1.4.2 2.4.1 2.6.6.7 1 1.6 1 2.6 0 3.7-2.3 4.6-4.4 4.8.3.3.7.9.7 1.8v2.7c0 .3.2.6.7.5A9.5 9.5 0 0 0 12 2.5z"/></svg>
+            Quellcode
+          </a>
+          <span class="note mono">Apple Silicon & Intel · macOS 12+ · kostenlos & Open Source</span>
+        </div>
+
+        <div class="mock reveal" aria-hidden="true">
+          <div class="mock-bar">
+            <div class="lights"><i></i><i></i><i></i></div>
+            <span class="brand" style="font-size:14px">Twitch<b>Sync</b></span>
+            <div class="mock-search">Kanal hinzufügen – Name oder twitch.tv-Link</div>
+            <div class="mock-sync">
+              <div class="mini-rail"><i style="--c:#59dcff;--from:20%"></i><i style="--c:#ff7ad9;--from:85%"></i><i style="--c:#ffb547;--from:40%"></i><i style="--c:#a796ff;--from:10%"></i><b></b></div>
+              ±0,08 s
+            </div>
+          </div>
+          <div class="mock-body">
+            <div class="mock-grid">
+              <div class="tile audio" style="--c:#59dcff"><div class="bar"><span class="sw"></span><span class="dot"></span><span class="name">Stream A</span><span class="lat">6,7 s</span></div><div class="pic" style="--scene:linear-gradient(160deg,#3b5a2c,#1d2b17 55%,#4a3b2a)"></div></div>
+              <div class="tile" style="--c:#ff7ad9"><div class="bar"><span class="sw"></span><span class="dot"></span><span class="name">Stream B</span><span class="lat">6,7 s</span></div><div class="pic" style="--scene:linear-gradient(200deg,#5a7fa8,#26344a 60%,#3c4250)"></div></div>
+              <div class="tile" style="--c:#ffb547"><div class="bar"><span class="sw"></span><span class="dot"></span><span class="name">Stream C</span><span class="lat">6,8 s</span></div><div class="pic" style="--scene:linear-gradient(170deg,#6b4a2a,#2a1d14 60%,#1f2a1c)"></div></div>
+              <div class="tile" style="--c:#a796ff"><div class="bar"><span class="sw"></span><span class="dot"></span><span class="name">Stream D</span><span class="lat">6,7 s</span></div><div class="pic" style="--scene:linear-gradient(190deg,#30284a,#141225 55%,#2b3b55)"></div></div>
+            </div>
+            <div class="mock-chat">
+              <div class="tabs"><span>Stream A</span><span>Stream B</span><span>Stream C</span></div>
+              <p><b style="--c:#59dcff">nebula</b>: das war gleichzeitig auf allen 4 😮</p>
+              <p><b style="--c:#ff7ad9">kekskrieger</b>: perfekt synchron</p>
+              <p><b style="--c:#ffb547">tilt_meister</b>: GG</p>
+              <p><b style="--c:#a796ff">pixelpaul</b>: wer hat den Clip?</p>
+              <p><b style="--c:#3ee6b0">miri</b>: Sub-Emotes gehen auch hier</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section id="features">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <span class="eyebrow">Funktionen</span>
+          <h2>Gebaut für <em>Multistream-Abende</em>.</h2>
+          <p>Alles, was man braucht, wenn mehrere Streamer gemeinsam live sind – und nichts, was im Weg steht.</p>
+        </div>
+        <div class="features">
+          <div class="card wide reveal"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3.5 8h13M3.5 16h17M12.5 12h8"/><path d="M16.5 4v8M12.5 9.5V14"/></svg></div><h3>Auto-Sync auf die Zehntelsekunde</h3><p>Jeder Stream meldet seine Latenz zum Streamer. TwitchSync gleicht alle an den langsamsten an: schnellere Streams spielen kurz minimal langsamer oder halten exakt so lange an, wie nötig. Haben alle genug Puffer, holt die Gruppe gemeinsam auf – die Verzögerung wächst nicht dauerhaft.</p></div>
+          <div class="card reveal"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="5" width="13" height="10" rx="1.5"/><rect x="16.5" y="5" width="4.5" height="4" rx="1"/><rect x="16.5" y="11" width="4.5" height="4" rx="1"/></svg></div><h3>Facecam-Modus</h3><p>Ein Stream als großes Gameplay, alle anderen nur als Facecam – automatisch erkannt und zugeschnitten.</p></div>
+          <div class="card reveal"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6"/></svg></div><h3>Ton per Klick</h3><p>Klick auf einen Stream gibt ihm den Ton, alle anderen werden stumm. ⌥-Klick mischt weitere dazu, Lautstärke pro Stream.</p></div>
+          <div class="card reveal"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1-3.5 4-5 7-5s6 1.5 7 5"/></svg></div><h3>Dein Twitch-Login</h3><p>Einmal normal bei twitch.tv anmelden – Turbo, Abo-Werbefreiheit und Sub-Emotes wirken in allen Playern und im Chat.</p></div>
+          <div class="card reveal"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3.5" y="7.5" width="11" height="9" rx="2"/><path d="M9.5 7.5V6A1.5 1.5 0 0 1 11 4.5h8A1.5 1.5 0 0 1 20.5 6v7a1.5 1.5 0 0 1-1.5 1.5h-4.5"/></svg></div><h3>Multistream-Erkennung</h3><p>Stream Together, Shared Chat und Erwähnungen im Titel: Live-Partner erscheinen in der Kachel – mit „Alle öffnen“.</p></div>
+          <div class="card reveal"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8.5A1.5 1.5 0 0 1 19 17h-6.5L8 20.5V17H5a1.5 1.5 0 0 1-1.5-1.5V7A1.5 1.5 0 0 1 5 5.5z"/></svg></div><h3>Chat mit Tabs</h3><p>Popout-Chat pro Kanal, ein-/ausklappbar, folgt auf Wunsch dem Stream, den du gerade hörst.</p></div>
+          <div class="card reveal"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3.5l7 2.5v5.5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-2.5z"/><path d="M9 12l2 2 4-4.5"/></svg></div><h3>Werbe- & Tracking-Blocker</h3><p>Blockiert bekannte Werbe- und Tracker-Domains, lädt auf Wunsch entpackte Erweiterungen wie uBlock Origin.</p></div>
+          <div class="card wide reveal"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg></div><h3>Nichts verdeckt das Bild</h3><p>Kanalname, Latenz und Bedienelemente sitzen in einer schmalen Leiste über dem Video statt darauf. Wer es ganz clean mag, blendet mit einer Taste alle Infos aus – inklusive der Twitch-Steuerleiste. Das Grid maximiert jede Kachel in 16:9, Doppelklick schaltet in den Fokus-Modus.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="sync">
+      <div class="wrap">
+        <div class="split">
+          <div class="reveal">
+            <span class="eyebrow">Wie Sync funktioniert</span>
+            <h2>Messen. Bremsen. <em>Gleichziehen.</em></h2>
+            <div class="steps" style="margin-top:30px">
+              <div class="step"><div><h4>Latenz messen</h4><p>Der offizielle Twitch-Player meldet <span class="mono">hlsLatencyBroadcaster</span>. Kombiniert mit der Wiedergabeposition ergibt das eine glatte, jederzeit genaue Latenz pro Stream.</p></div></div>
+              <div class="step"><div><h4>Ziel bestimmen</h4><p>Der Stream mit der höchsten Latenz ist die Referenz – inklusive deines manuellen Versatzes (±0,1 s / ±1 s pro Stream).</p></div></div>
+              <div class="step"><div><h4>Angleichen</h4><p>Kleine Abstände: bis 0,9× verlangsamen, Tonhöhe bleibt. Große Abstände: für exakt die fehlende Zeit anhalten – im Player selbst getimt.</p></div></div>
+              <div class="step"><div><h4>Gemeinsam aufholen</h4><p>Haben alle genug Puffer, beschleunigt die ganze Gruppe synchron auf bis zu 1,08×. Werbepausen und Nachladen werden erkannt und ausgeklammert.</p></div></div>
+            </div>
+          </div>
+          <div class="scope reveal" aria-hidden="true">
+            <div class="eyebrow" style="margin-bottom:22px">Latenz-Schiene</div>
+            <div class="scope-row"><span class="label">STREAM A</span><span class="blip" style="--c:var(--cyan);--from:calc(92px + (100% - 92px) * .3)"></span></div>
+            <div class="scope-row"><span class="label">STREAM B</span><span class="blip" style="--c:var(--pink);--from:calc(92px + (100% - 92px) * .66)"></span></div>
+            <div class="scope-row"><span class="label">STREAM C</span><span class="blip" style="--c:var(--amber);--from:calc(92px + (100% - 92px) * .15)"></span></div>
+            <div class="scope-row"><span class="label">STREAM D</span><span class="blip" style="--c:var(--violet);--from:calc(92px + (100% - 92px) * .45)"></span></div>
+            <span class="scope-line"></span>
+            <div class="scope-legend"><span>4,0 s</span><span style="color:var(--signal)">Ziel 6,8 s</span><span>8,0 s</span></div>
+          </div>
+        </div>
+        <table class="reveal">
+          <thead><tr><th>Öffentliche Schnittstelle</th><th>Ergebnis der Prüfung</th><th>Genutzt</th></tr></thead>
+          <tbody>
+            <tr><td>Embed-API · getPlaybackStats()</td><td>Liefert die Latenz zum Streamer. Läuft der Player direkt im Webview, sendet er seinen Zustand an sich selbst – TwitchSync liest mit.</td><td class="ok">Messung</td></tr>
+            <tr><td>Embed-API · play / pause / setVolume</td><td>Werden ohne echten Eltern-Frame ignoriert; ein Tempo-Befehl existiert nicht.</td><td class="no">–</td></tr>
+            <tr><td>video.playbackRate</td><td>Funktioniert, der Player setzt fremde Werte aber zurück. Ein kleiner Hook meldet ihm weiter seinen eigenen Wert.</td><td class="ok">Tempo</td></tr>
+            <tr><td>video.pause()</td><td>Der Player verwirft beim Pausieren den Puffer und springt zur Live-Kante zurück – erhöht die Latenz also nicht. Stattdessen: Rate 0.</td><td class="ok">Anhalten</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="facecam">
+      <div class="wrap">
+        <div class="split">
+          <div class="facecam-mock reveal" aria-hidden="true">
+            <div class="tile audio main" style="--c:#59dcff"><div class="bar"><span class="sw"></span><span class="dot"></span><span class="name">Gameplay</span><span class="lat">6,7 s</span></div><div class="pic" style="--scene:linear-gradient(160deg,#3b5a2c,#1d2b17 55%,#4a3b2a)"></div></div>
+            <div class="cams">
+              <div class="cam" style="--c:#ff7ad9;--skin:#e7c09d;--shirt:#3a2f55;--room:#3b2d4a"><div class="tile"><div class="bar"><span class="sw"></span><span class="name">B</span><span class="lat">6,7 s</span></div></div><div class="face"></div></div>
+              <div class="cam" style="--c:#ffb547;--skin:#d7a982;--shirt:#24464a;--room:#2c3a3d"><div class="tile"><div class="bar"><span class="sw"></span><span class="name">C</span><span class="lat">6,8 s</span></div></div><div class="face"></div></div>
+              <div class="cam" style="--c:#a796ff;--skin:#f0cfb4;--shirt:#4a2a2a;--room:#33282a"><div class="tile"><div class="bar"><span class="sw"></span><span class="name">D</span><span class="lat">6,7 s</span></div></div><div class="face"></div></div>
+              <div class="cam" style="--c:#3ee6b0;--skin:#c99772;--shirt:#1f2f4f;--room:#222c40"><div class="tile"><div class="bar"><span class="sw"></span><span class="name">E</span><span class="lat">6,7 s</span></div></div><div class="face"></div></div>
+            </div>
+          </div>
+          <div class="reveal">
+            <span class="eyebrow">Facecam-Modus</span>
+            <h2>Ein Gameplay. <em>Alle Reaktionen.</em></h2>
+            <p style="color:var(--text-1);font-size:17px">Wähle einen Stream als Hauptbild – alle anderen schrumpfen auf ihre Webcam. TwitchSync nimmt dafür mehrere Standbilder, sucht Gesichter (auf macOS über Apples Vision-Framework) und wählt das, das immer an derselben Stelle auftaucht: Gesichter im Gameplay springen herum, die Facecam nicht.</p>
+            <p style="color:var(--text-1);font-size:17px">Der Ausschnitt wird automatisch nachgeführt. Liegt die Erkennung daneben, ziehst du den Rahmen im Editor einfach selbst – pro Kanal gemerkt. Doppelklick auf eine Facecam macht sie zum Hauptbild.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="install">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <span class="eyebrow">Installation</span>
+          <h2>In zwei Minuten <em>startklar</em>.</h2>
+        </div>
+        <div class="install">
+          <div class="card reveal"><h3>1 · Herunterladen</h3><p>Lade unter <a href="https://github.com/olivrr-vfx/twitchsync/releases/latest">Releases</a> die DMG für deinen Mac (<span class="mono">arm64</span> = Apple Silicon, <span class="mono">x64</span> = Intel) und ziehe TwitchSync in „Programme“.</p></div>
+          <div class="card reveal"><h3>2 · Erster Start</h3><p>Die App ist nicht von Apple notarisiert. Beim ersten Start: Rechtsklick auf TwitchSync → „Öffnen“ → „Öffnen“. Alternativ im Terminal:</p><pre>xattr -dr com.apple.quarantine /Applications/TwitchSync.app</pre></div>
+          <div class="card reveal"><h3>3 · Loslegen</h3><p>Optional bei Twitch anmelden (für gefolgte Kanäle, Turbo & Sub-Emotes), oben Kanäle eintippen – oder twitch.tv-Links aufs Fenster ziehen.</p></div>
+          <div class="card wide reveal"><h3>Selbst bauen</h3><p>Node.js 18+ vorausgesetzt. Kein Build-Schritt für den Code – nur Electron.</p><pre>git clone https://github.com/olivrr-vfx/twitchsync.git
+cd twitchsync && npm install
+npm start          # App starten
+npm run pack       # .app bauen  →  dist/mac-arm64/TwitchSync.app
+npm run dist       # DMG + ZIP für Apple Silicon und Intel</pre></div>
+          <div class="card reveal"><h3>Datenschutz</h3><p>Keine eigenen Server, keine Telemetrie. Das Passwort tippst du direkt bei twitch.tv ein; gespeichert wird nur Twitchs Sitzungs-Cookie in deinem Benutzerordner.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="keys">
+      <div class="wrap">
+        <div class="section-head reveal"><span class="eyebrow">Tastenkürzel</span><h2>Alles ohne Maus.</h2></div>
+        <div class="keys reveal">
+          <div><span>Kanal hinzufügen</span><span><kbd>⌘</kbd> <kbd>L</kbd></span></div>
+          <div><span>Ton auf Stream 1–9</span><span><kbd>1</kbd> … <kbd>9</kbd></span></div>
+          <div><span>Fokus-Modus</span><span><kbd>F</kbd> · Doppelklick</span></div>
+          <div><span>Facecam-Modus</span><span><kbd>C</kbd></span></div>
+          <div><span>Zurück zum Grid</span><span><kbd>Esc</kbd> · <kbd>G</kbd></span></div>
+          <div><span>Kachel-Infos ein/aus</span><span><kbd>I</kbd></span></div>
+          <div><span>Alle stummschalten</span><span><kbd>M</kbd></span></div>
+          <div><span>Lautstärke</span><span><kbd>↑</kbd> <kbd>↓</kbd></span></div>
+          <div><span>Auto-Sync an/aus</span><span><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>S</kbd></span></div>
+          <div><span>Alle neu synchronisieren</span><span><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>R</kbd></span></div>
+          <div><span>Kanäle-Leiste / Chat</span><span><kbd>⌘</kbd> <kbd>B</kbd> · <kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>C</kbd></span></div>
+          <div><span>Einstellungen</span><span><kbd>⌘</kbd> <kbd>,</kbd></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="wrap">
+        <div class="section-head reveal"><span class="eyebrow">FAQ</span><h2>Gut zu wissen.</h2></div>
+        <div class="reveal">
+          <details><summary>Ist TwitchSync werbefrei?</summary><p>Werbefreiheit kommt von deinem Twitch-Konto: Mit Turbo überall, mit einem Abo beim jeweiligen Kanal. Der eingebaute Blocker sperrt Werbe- und Tracking-Domains, verändert aber bewusst nicht den Videostream. Läuft trotzdem eine Werbepause, nimmt TwitchSync den Stream so lange aus der Synchronisation.</p></details>
+          <details><summary>Wie genau ist die Synchronisation?</summary><p>Im Test lagen sechs gleichzeitige Streams nach 20 Sekunden innerhalb von ±0,1 s. Die Genauigkeit hängt von Twitchs Latenzmessung ab; der Rest lässt sich pro Stream in 0,1-s-Schritten feinjustieren – nützlich, wenn ein Streamer selbst eine Verzögerung eingestellt hat.</p></details>
+          <details><summary>Warum ist ein Stream plötzlich kurz eingefroren?</summary><p>Das ist der Sync: Liegt ein Stream mehr als 1,5 s vor den anderen, hält er für genau diese Zeit an. Beim Stream mit Ton wird lieber sanft verlangsamt. Beides ist in den Einstellungen anpassbar.</p></details>
+          <details><summary>Die Facecam wird nicht erkannt – was tun?</summary><p>Die Erkennung braucht ein sichtbares Gesicht. Bei Streamern ohne Kamera, mit VTuber-Avatar oder wechselnden Szenen auf den Facecam-Chip bzw. „Ausschnitt anpassen“ klicken und den Rahmen selbst setzen.</p></details>
+          <details><summary>Ist das ein offizielles Twitch-Produkt?</summary><p>Nein. TwitchSync ist ein inoffizielles Open-Source-Projekt und nicht mit Twitch Interactive, Inc. verbunden. Streams laufen über den offiziellen eingebetteten Twitch-Player.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        <span>TwitchSync · MIT-Lizenz · © 2026 olivrr-vfx</span>
+        <span><a href="https://github.com/olivrr-vfx/twitchsync">GitHub</a> · <a href="https://github.com/olivrr-vfx/twitchsync/releases">Releases</a> · <a href="https://github.com/olivrr-vfx/twitchsync/issues">Fehler melden</a></span>
+        <span>Nicht mit Twitch Interactive, Inc. verbunden.</span>
+      </div>
+    </footer>
+
+    <script>
+      const io = new IntersectionObserver((entries) => {
+        for (const e of entries) if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      }, { threshold: 0.12 });
+      document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+    </script>
+  </body>
+</html>
