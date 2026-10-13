@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://static-cdn.jtvnw.net; font-src 'self'; connect-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <title>TwitchSync</title>
+    <link rel="stylesheet" href="styles/app.css" />
+    <script type="module" src="js/app.js"></script>
+  </head>
+  <body>
+    <div id="app" class="app" data-sidebar="expanded" data-chat="open">
+      <header class="toolbar" id="toolbar">
+        <div class="tb-group tb-left">
+          <button class="icon-btn" id="btn-sidebar" data-tip="Kanäle-Leiste · ⌘B"></button>
+          <div class="brand" id="brand">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span class="brand-word">Twitch<b>Sync</b></span>
+          </div>
+        </div>
+
+        <div class="tb-group tb-center">
+          <div class="add-box" id="add-box">
+            <span class="add-icon" aria-hidden="true"></span>
+            <input
+              id="add-input"
+              type="text"
+              spellcheck="false"
+              autocomplete="off"
+              placeholder="Kanal hinzufügen – Name oder twitch.tv-Link"
+              aria-label="Kanal hinzufügen"
+            />
+            <kbd>⌘L</kbd>
+            <div class="suggest" id="suggest" role="listbox" hidden></div>
+          </div>
+        </div>
+
+        <div class="tb-group tb-right">
+          <div class="seg" id="view-seg" role="tablist" aria-label="Ansicht">
+            <button data-view="grid" data-icon="grid" data-tip="Grid · G"></button>
+            <button data-view="focus" data-icon="focusLayout" data-tip="Fokus · F"></button>
+            <button data-view="facecam" data-icon="facecam" data-tip="Facecam-Modus · C&#10;Hauptbild + Facecams der anderen"></button>
+          </div>
+          <span class="tb-sep"></span>
+          <div class="sync-cluster" id="sync-cluster">
+            <div class="rail" id="rail" aria-label="Latenz aller Streams">
+              <div class="rail-track"></div>
+              <div class="rail-target" id="rail-target"></div>
+              <div class="rail-markers" id="rail-markers"></div>
+            </div>
+            <div class="sync-readout" id="sync-readout">
+              <span class="sync-label">Sync</span>
+              <span class="sync-value" id="sync-value">aus</span>
+            </div>
+            <label class="switch" data-tip="Auto-Sync · ⇧⌘S">
+              <input type="checkbox" id="sync-toggle" />
+              <span class="switch-ui"></span>
+            </label>
+            <button class="icon-btn" id="btn-resync-all" data-tip="Alle neu synchronisieren · ⇧⌘R"></button>
+          </div>
+          <span class="tb-sep"></span>
+          <button class="icon-btn" id="btn-chrome" data-tip="Kachel-Infos ausblenden · I"></button>
+          <button class="icon-btn" id="btn-mute" data-tip="Alle stummschalten · ⇧⌘M"></button>
+          <button class="icon-btn" id="btn-chat" data-tip="Chat · ⇧⌘C"></button>
+          <button class="icon-btn" id="btn-settings" data-tip="Einstellungen · ⌘,"></button>
+        </div>
+      </header>
+
+      <aside class="sidebar" id="sidebar"></aside>
+
+      <main class="stage" id="stage">
+        <div class="grid" id="grid"></div>
+        <section class="empty" id="empty" hidden></section>
+      </main>
+
+      <aside class="chat" id="chat">
+        <div class="chat-resizer" id="chat-resizer" title="Breite ziehen"></div>
+        <div class="chat-head">
+          <div class="chat-tabs" id="chat-tabs"></div>
+          <button class="icon-btn small" id="btn-chat-close" data-tip="Chat ausblenden"></button>
+        </div>
+        <div class="chat-body" id="chat-body"></div>
+      </aside>
+    </div>
+
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+    <div id="layer"></div>
+    <div class="tooltip" id="tooltip" hidden></div>
+  </body>
+</html>
