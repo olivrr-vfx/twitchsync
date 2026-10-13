@@ -1,0 +1,58 @@
+{
+  "name": "twitchsync",
+  "productName": "TwitchSync",
+  "version": "1.0.0",
+  "description": "Twitch-Multiview für macOS: mehrere Streams gleichzeitig, automatisch synchronisiert – mit Chat, gefolgten Kanälen und Multistream-Erkennung.",
+  "main": "src/main/main.js",
+  "author": "olivrr-vfx",
+  "license": "MIT",
+  "private": true,
+  "homepage": "https://github.com/olivrr-vfx/twitchsync",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --mac --dir -c.mac.identity=-",
+    "dist": "electron-builder --mac dmg zip --arm64 --x64",
+    "icon": "electron scripts/make-icon.js",
+    "lint": "node scripts/check-syntax.js"
+  },
+  "build": {
+    "appId": "app.twitchsync.desktop",
+    "productName": "TwitchSync",
+    "copyright": "© 2026 olivrr-vfx",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json",
+      "LICENSE"
+    ],
+    "asar": true,
+    "mac": {
+      "category": "public.app-category.entertainment",
+      "icon": "build/icon.icns",
+      "darkModeSupport": true,
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "minimumSystemVersion": "12.0",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "dmg": {
+      "title": "TwitchSync ${version}",
+      "background": null,
+      "window": {
+        "width": 540,
+        "height": 380
+      }
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.7.1",
+    "electron-builder": "^26.15.3"
+  }
+}
