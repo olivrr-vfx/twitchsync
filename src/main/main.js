@@ -441,6 +441,8 @@ function registerIpc() {
       locale: app.getLocale(),
       repo: REPO_URL,
       debug: !app.isPackaged || process.env.TWITCHSYNC_DEBUG === '1',
+      // An Intel build running on Apple Silicon (Rosetta) is far too slow for video.
+      translated: Boolean(app.runningUnderARM64Translation),
     },
   }));
   handle('store:set', (patch) => store.set(patch));

@@ -1612,6 +1612,17 @@ async function boot() {
     if (state.blockedTick) state.blockedTick(count);
   });
 
+  if (state.appInfo.translated) {
+    toast(
+      'Diese TwitchSync-Version ist für Intel-Macs und läuft hier über Rosetta – Streams laden dadurch sehr langsam. Bitte die Universal-Version laden.',
+      {
+        kind: 'warn',
+        duration: 0,
+        actions: [{ label: 'Download', primary: true, onClick: () => api.openExternal(`${state.appInfo.repo}/releases/latest`) }],
+      },
+    );
+  }
+
   renderSidebar();
   renderEmpty();
   refreshInfo();

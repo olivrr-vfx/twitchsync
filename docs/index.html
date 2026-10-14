@@ -312,14 +312,14 @@
           <h2>In zwei Minuten <em>startklar</em>.</h2>
         </div>
         <div class="install">
-          <div class="card reveal"><h3>1 · Herunterladen</h3><p>Lade unter <a href="https://github.com/olivrr-vfx/twitchsync/releases/latest">Releases</a> die DMG für deinen Mac (<span class="mono">arm64</span> = Apple Silicon, <span class="mono">x64</span> = Intel) und ziehe TwitchSync in „Programme“.</p></div>
+          <div class="card reveal"><h3>1 · Herunterladen</h3><p>Lade unter <a href="https://github.com/olivrr-vfx/twitchsync/releases/latest">Releases</a> die Datei <span class="mono">TwitchSync-…-mac-universal.dmg</span> – sie läuft nativ auf Apple Silicon und Intel. Dann TwitchSync in „Programme“ ziehen.</p></div>
           <div class="card reveal"><h3>2 · Erster Start</h3><p>Die App ist nicht von Apple notarisiert. Beim ersten Start: Rechtsklick auf TwitchSync → „Öffnen“ → „Öffnen“. Alternativ im Terminal:</p><pre>xattr -dr com.apple.quarantine /Applications/TwitchSync.app</pre></div>
           <div class="card reveal"><h3>3 · Loslegen</h3><p>Optional bei Twitch anmelden (für gefolgte Kanäle, Turbo & Sub-Emotes), oben Kanäle eintippen – oder twitch.tv-Links aufs Fenster ziehen.</p></div>
           <div class="card wide reveal"><h3>Selbst bauen</h3><p>Node.js 18+ vorausgesetzt. Kein Build-Schritt für den Code – nur Electron.</p><pre>git clone https://github.com/olivrr-vfx/twitchsync.git
 cd twitchsync && npm install
 npm start          # App starten
 npm run pack       # .app bauen  →  dist/mac-arm64/TwitchSync.app
-npm run dist       # DMG + ZIP für Apple Silicon und Intel</pre></div>
+npm run dist       # Universal-DMG + ZIP</pre></div>
           <div class="card reveal"><h3>Datenschutz</h3><p>Keine eigenen Server, keine Telemetrie. Das Passwort tippst du direkt bei twitch.tv ein; gespeichert wird nur Twitchs Sitzungs-Cookie in deinem Benutzerordner.</p></div>
         </div>
       </div>
