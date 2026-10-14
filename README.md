@@ -41,10 +41,10 @@ Kanäle fügst du oben über das Suchfeld hinzu (⌘L) – per Name, `@name`, me
 
 ```bash
 npm run pack   # baut dist/mac-<arch>/TwitchSync.app (ad-hoc signiert, lokal startbar)
-npm run dist   # Universal-DMG + ZIP (läuft nativ auf Apple Silicon und Intel)
+npm run dist   # Universal-DMG + ZIP, ad-hoc signiert (läuft nativ auf Apple Silicon und Intel)
 ```
 
-`npm run pack` erzeugt die `.app` für die Architektur deines Macs. Zum Veröffentlichen mit Developer-ID-Signatur und Notarisierung setzt du die üblichen [electron-builder-Variablen](https://www.electron.build/code-signing) (`CSC_LINK`/`CSC_NAME`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`) und führst `npm run dist` aus. Hardened Runtime und Entitlements sind bereits konfiguriert. Ohne Signatur blockiert Gatekeeper die App auf anderen Macs, bis man sie per Rechtsklick → „Öffnen“ freigibt.
+`npm run pack` erzeugt die `.app` für die Architektur deines Macs. Zum Veröffentlichen mit Developer-ID-Signatur und Notarisierung setzt du die üblichen [electron-builder-Variablen](https://www.electron.build/code-signing) (`CSC_LINK`/`CSC_NAME`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`) und führst `npm run dist:signed` aus. Hardened Runtime und Entitlements sind bereits konfiguriert. Ohne Signatur blockiert Gatekeeper die App auf anderen Macs, bis man sie per Rechtsklick → „Öffnen“ freigibt.
 
 ## Bedienung
 

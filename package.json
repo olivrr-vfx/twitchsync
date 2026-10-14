@@ -1,7 +1,7 @@
 {
   "name": "twitchsync",
   "productName": "TwitchSync",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Twitch-Multiview für macOS: mehrere Streams gleichzeitig, automatisch synchronisiert – mit Chat, gefolgten Kanälen und Multistream-Erkennung.",
   "main": "src/main/main.js",
   "author": "olivrr-vfx",
@@ -11,9 +11,10 @@
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --mac --dir -c.mac.identity=-",
-    "dist": "electron-builder --mac dmg zip --universal",
+    "dist": "electron-builder --mac dmg zip --universal -c.mac.identity=-",
     "icon": "electron scripts/make-icon.js",
-    "lint": "node scripts/check-syntax.js"
+    "lint": "node scripts/check-syntax.js",
+    "dist:signed": "electron-builder --mac dmg zip --universal"
   },
   "build": {
     "appId": "app.twitchsync.desktop",
